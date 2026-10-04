@@ -14,7 +14,8 @@
     "test:mobile": "node tools/test-mobile.mjs",
     "build:zip": "node tools/build-extension-zip.mjs",
     "verify:zip": "node tools/build-extension-zip.mjs --verify",
-    "check:zip": "node tools/build-extension-zip.mjs --check"
+    "check:zip": "node tools/build-extension-zip.mjs --check",
+    "verify:published": "node tools/verify-published.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-util-values": "0.2.0-rc.2"
