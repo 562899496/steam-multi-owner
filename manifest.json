@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Steam 多账号拥有检查",
   "short_name": "多账号拥有检查",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "把多个 Steam 账号的库合并成一张本地索引：浏览商店、愿望单、搜索结果和购物车时，直接标注哪个账号已经拥有这款游戏，避免重复购买。",
   "minimum_chrome_version": "102",
   "permissions": [

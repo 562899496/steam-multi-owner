@@ -1,6 +1,6 @@
 {
   "name": "steam-multi-owner",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "private": true,
   "type": "module",
   "description": "多账号 Steam 拥有检查：Chrome 扩展 + 移动端离线页 + DSH 插件",
