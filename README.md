@@ -9,6 +9,27 @@ Steam 自己只会告诉你**当前登录账号**有没有这款游戏（商店�
 
 ---
 
+## 0. 只想用、不想看代码？
+
+**普通用户走这条路就够了：**
+
+1. 下载 [`dist/steam-multi-owner-v1.9.1.zip`](dist/steam-multi-owner-v1.9.1.zip)（仓库 `dist/` 目录里的那个包，只有 71 KB）
+2. **解压到一个固定的文件夹**（解压后应能直接看到 `manifest.json`）
+3. Chrome 地址栏输入 `chrome://extensions` → 打开右上角**开发者模式** → 点**加载已解压的扩展程序** → 选中刚解压的文件夹
+4. 登录一个 Steam 账号 → 点扩展图标 → **「导入当前登录的号」**
+
+⚠️ 注意：**必须解压**，Chrome 不能直接加载 zip；也**不要**把文件夹放在"用完就清"的临时目录里 —— 扩展是引用它运行的。
+
+> 为什么不发 `.crx`？Chrome 稳定版已禁止从商店之外直接安装 crx，"开发者模式 + 加载已解压"是唯一稳定可用的方式。
+> 上架 Chrome 应用商店是另一条路（要审核、隐私说明），目前没走。
+
+**详细的图文步骤、首次配置、日常用法、更新方法、常见问题**：见 [INSTALL.md](INSTALL.md)。
+
+**给开发者**：直接用 `git clone` 下来的仓库根目录当扩展目录也行（根目录本身就是可加载的扩展目录，
+Chrome 只读 `manifest.json` 引用的 `src/` 与 `icons/`，`test/ tools/ docs/ dsh/` 对它没有影响）。
+
+---
+
 ## 1. 三种形态，按场景挑
 
 | 形态 | 适合 | 需要什么 | 状态 |
@@ -124,6 +145,9 @@ AppID 1245620（ELDEN RING）
 ```
 steam-multi-owner/
 ├─ manifest.json            Chrome MV3 清单（权限只有 storage/alarms + 3 个 Steam 域名）
+├─ INSTALL.md               ★ 面向使用者的安装/使用说明（普通用户看这个就够）
+├─ dist/
+│  └─ steam-multi-owner-v<版本>.zip   ★ 打包好的扩展：下载 → 解压 → 加载已解压的扩展程序
 ├─ src/
 │  ├─ lib/core.js           ★ 纯逻辑真源：解析、索引、判断、数量口径（无 chrome.*/DOM/IO）
 │  ├─ lib/steam-api.js      IO 层：所有请求都注入 fetch，便于测试；含会话 token / 类型分类
@@ -135,12 +159,12 @@ steam-multi-owner/
 │  ├─ package.json          dsh.bundle.patch 指向 cordis.patch.yml
 │  ├─ cordis.patch.yml      插入插件行（含踩过的坑的注释）
 │  └─ lib/index.js          3 个工具 + 输出自检；lib/core.js 与 lib/steam-api.js 是同步副本
-├─ dsh-install-<版本>/       打包产物：真正装进 profile 的那一份（由 tools/pack-plugin.mjs 生成）
+├─ dsh-install-<版本>/       打包产物：真正装进 profile 的那一份（由 tools/pack-plugin.mjs 生成，不进 git）
 ├─ mobile/
 │  ├─ app.html              移动端页面源模板
 │  └─ index.html            构建产物：内联 core.js 的单文件（构建生成，勿手改）
 ├─ test/                    54 个核心单测 + 19 个插件单测
-├─ tools/                   验证器、构建、打包、截图、诊断脚本
+├─ tools/                   验证器、打包（zip / DSH 插件）、构建、截图、诊断脚本
 └─ docs/                    真机截图
 ```
 
@@ -430,8 +454,27 @@ node tools/pack-plugin.mjs          # 生成 dsh-install-<新版本>/
 - 改逻辑请改 `src/lib/core.js` 或 `src/lib/steam-api.js`，然后跑
   `node tools/sync-plugin-lib.mjs` 同步插件副本（单测会校验一致性，忘了同步会红）。
 - 改移动端页面请改 `mobile/app.html`，然后 `node tools/build-mobile.mjs` 生成 `mobile/index.html`。
-- 改 DSH 插件请改 `dsh/`，然后 `node tools/pack-plugin.mjs` 打包并从新目录安装（原因见第 5 节）。
+- 改 DSH 插件请改 `dsh/`，然后 `node tools/pack-plugin.mjs` 打包并从新目录安装，然后**重启 DSH**（原因见第 12 节实测记录）。
 - 提交前建议按第 6 节把命令都跑一遍。
+
+### 发版清单（改动扩展代码后必须走一遍）
+
+```powershell
+# 1) 升版本号：改 manifest.json 的 version（扩展的版本只看它）
+# 2) 重新打包给用户下载的 zip —— 忘了这步，用户装到的还是旧版
+npm run build:zip
+# 3) 确认 dist 里的包与当前源码逐字节一致（专门拦"改完忘了打包"）
+npm run check:zip
+# 4) 让 Chrome 真的加载一次，证明这个包确实能用（会开一个临时浏览器）
+npm run verify:zip
+# 5) 回归
+npm test; npm run verify
+```
+
+> 为什么把 zip 提交进 `dist/`：使用者从 GitHub 页面就能直接下载安装包，不用自己打包。
+> 代价是每改一次扩展代码都要重新 `build:zip`，所以第 3 步的 `check:zip` **必须**跑 ——
+> 它逐字节比对包内文件与源码，并在 `dist/` 里存在过期包时报错。
+> 也可以在 GitHub 发 Release 时把 `dist/*.zip` 作为附件上传（`INSTALL.md` 里两条路都写了）。
 - 新增能力时优先在 `core.js` 里写成**纯函数**（无 IO、无环境依赖），这样扩展、移动端、DSH 插件都能共用，
   也才能在 Node 里直接单测。
 - 界面上的数字一定要带口径：`Core.describeCount()` / `describeIndex()` / `describeSummary()` 是唯一入口，
