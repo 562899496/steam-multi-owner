@@ -1,0 +1,25 @@
+{
+  "name": "@local/steam-ownership",
+  "version": "1.4.2",
+  "private": true,
+  "description": "DSH 插件：把多个 Steam 账号的游戏库合并成一张本地索引，在会话里直接回答「这款游戏我的哪个账号已经拥有」。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "meta": {
+      "title": "Steam 多账号拥有检查",
+      "description": "合并多个 Steam 账号的库，在会话里查「这款游戏我的哪个账号已经拥有」，避免重复购买。"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4"
+  }
+}

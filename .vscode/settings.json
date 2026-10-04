@@ -1,0 +1,18 @@
+{
+  "//": "把依赖目录和打包产物从搜索/文件树里藏掉，避免满屏 node_modules 噪音。",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dsh-install-*": true,
+    "mobile/index.html": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dsh-install-*/**": true
+  },
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.tabSize": 2,
+  "editor.rulers": [120],
+  "js/ts.implicitProjectConfig.checkJs": false
+}

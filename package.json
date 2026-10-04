@@ -1,0 +1,19 @@
+{
+  "name": "steam-multi-owner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "多账号 Steam 拥有检查：Chrome 扩展 + 移动端离线页 + DSH 插件",
+  "scripts": {
+    "test": "node --test test/",
+    "test:core": "node --test test/core.test.mjs",
+    "test:plugin": "node --test test/dsh-plugin.test.mjs",
+    "verify": "node tools/verify-extension.mjs",
+    "verify:static": "node tools/verify-extension.mjs --static-only",
+    "build:mobile": "node tools/build-mobile.mjs",
+    "test:mobile": "node tools/test-mobile.mjs"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-util-values": "0.2.0-rc.2"
+  }
+}

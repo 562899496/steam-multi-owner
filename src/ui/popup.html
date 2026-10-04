@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Steam 多账号拥有检查</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { width: 400px; }
+    #result { padding: 0 14px 14px; }
+    .ways { margin: 0 0 10px; padding: 8px 10px; border-left: 3px solid #2a475e; background: rgba(0,0,0,.18); border-radius: 3px; }
+    .ways div { font-size: 11px; color: #8facc4; line-height: 1.7; }
+    .ways b { color: #c7d5e0; }
+    #addForm { display: none; margin-top: 10px; padding: 10px; border: 1px solid #2a475e; border-radius: 4px; background: rgba(0,0,0,.18); }
+    #addForm.open { display: block; }
+    .sub2 { font-size: 11px; color: #7b93a6; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <h1>多账号拥有检查</h1>
+    <span id="ver" style="font-size:11px;color:#7b93a6"></span>
+    <span class="spacer"></span>
+    <button id="openOptions" class="ghost" title="打开完整设置页">设置</button>
+  </div>
+
+  <div class="summary" id="summary">读取中…</div>
+
+  <div class="section">
+    <label class="field" for="query">查一款游戏（AppID 或商店链接）</label>
+    <div class="row">
+      <input type="text" id="query" placeholder="例如 1245620 或 store.steampowered.com/app/1245620">
+      <button id="check" class="primary">检查</button>
+    </div>
+    <div class="row">
+      <button id="checkTab" class="wide">检查当前标签页</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="result"></div>
+
+  <div class="section">
+    <h2 style="margin-top:0">我的账号</h2>
+
+    <div class="row">
+      <button id="importSession" class="primary" style="flex:2">导入当前登录的号</button>
+      <button id="addToggle" style="flex:1">＋ 添加</button>
+      <button id="syncAll" style="flex:1">同步全部</button>
+    </div>
+
+    <div class="ways">
+      <div><b>① 免 key</b>：登录某个 Steam 账号 → 点「导入当前登录的号」。换号登录再点一次即可加第二个号。</div>
+      <div style="margin-top:5px">
+        <button id="loginOther" class="ghost" style="padding:2px 8px;font-size:11px">去 Steam 登录另一个号</button>
+        <span style="font-size:11px">打开官方登录页，Steam Guard 由 Steam 处理</span>
+      </div>
+      <div style="margin-top:5px"><b>② 按 SteamID</b>：点「＋ 添加」，填 SteamID / 自定义 ID / 资料链接（需档案「游戏详情」公开 + API key）。</div>
+    </div>
+
+    <ul class="list" id="accounts"></ul>
+
+    <div id="addForm">
+      <label class="field" for="newLabel">备注名（例如：小号 / 阿根廷区）</label>
+      <input type="text" id="newLabel" placeholder="小号">
+      <label class="field" for="newKey" style="margin-top:8px">SteamID64 / 自定义 ID / 个人资料链接</label>
+      <input type="text" id="newKey" placeholder="76561198… 或 gabel 或 steamcommunity.com/id/gabel">
+      <label class="field" for="newApiKey" style="margin-top:8px">Steam Web API key（可选）</label>
+      <input type="password" id="newApiKey" placeholder="留空则用设置页里的共享 key">
+      <div class="row" style="margin-top:10px">
+        <button id="addSync" class="primary">添加并同步</button>
+        <button id="addOnly">仅添加</button>
+      </div>
+      <div class="sub2" id="addStatus"></div>
+      <div class="sub2" style="margin-top:6px">API key 在 steamcommunity.com/dev/apikey 免费申请，一个 key 能查所有「游戏详情公开」的号。</div>
+    </div>
+
+    <div class="hint" id="indexHint"></div>
+  </div>
+
+  <script src="../lib/core.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

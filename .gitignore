@@ -1,0 +1,22 @@
+# 依赖与构建产物（都要靠 npm/pnpm 重新生成，不进仓库）
+node_modules/
+dsh-install-*/
+
+# 本地探测/调试产物（真实 Steam 页面 HTML、导出数据等，可能含个人信息）
+.probe*
+*.probe.html
+*export*.json
+*.tmp.json
+.tmp-store.json
+
+# 编辑器与系统杂项
+.vscode/*.local.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
+npm-debug.log*
+pnpm-debug.log*

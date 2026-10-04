@@ -1,0 +1,83 @@
+/* Steam Multi-Owner :: 页面内角标与购物车警告（面板样式在 shadow DOM 内自带） */
+
+.smo-badge {
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin-left: 8px !important;
+  padding: 1px 7px !important;
+  border-radius: 3px !important;
+  font: 500 11px/1.6 "Motiva Sans", "Microsoft YaHei", Arial, sans-serif !important;
+  white-space: nowrap !important;
+  letter-spacing: .2px !important;
+  border: 1px solid transparent !important;
+}
+
+.smo-badge-inline { position: relative !important; z-index: 5 !important; }
+
+/* 其他账号拥有（当前账号没有）——最需要被看到的情况 */
+.smo-tone-owned-other {
+  background: #4a3a12 !important;
+  color: #ffd98a !important;
+  border-color: #b5871c !important;
+}
+/* 当前账号已拥有 */
+.smo-tone-owned-current {
+  background: #2f4a16 !important;
+  color: #cdee9a !important;
+  border-color: #5c8a1e !important;
+}
+/* 当前账号和其他账号都有 */
+.smo-tone-owned-both {
+  background: #243f52 !important;
+  color: #a4d007 !important;
+  border-color: #2a475e !important;
+}
+/* 谁都没有：默认不显示，只有设置里打开"显示未拥有"才出现 */
+.smo-tone-none {
+  background: #22303c !important;
+  color: #7b93a6 !important;
+  border-color: #2a475e !important;
+}
+.smo-tone-unknown {
+  background: #22303c !important;
+  color: #7b93a6 !important;
+  border-color: #2a475e !important;
+}
+
+/* ------------------------------ 购物车警告 ------------------------------ */
+
+#smo-cart-warning.smo-cart-warning {
+  margin: 0 0 16px 0 !important;
+  padding: 12px 16px !important;
+  border-radius: 4px !important;
+  border-left: 4px solid #e6a919 !important;
+  background: linear-gradient(90deg, rgba(230,169,25,.16) 0%, rgba(27,40,56,.9) 60%) !important;
+  color: #ffd98a !important;
+  font: 13px/1.6 "Motiva Sans", "Microsoft YaHei", Arial, sans-serif !important;
+  /* 支付页内容长，做成吸顶：滚动到哪都看得见这条提醒 */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
+}
+#smo-cart-warning.smo-cart-warning b {
+  display: block !important;
+  font-size: 14px !important;
+  color: #ffe9b0 !important;
+  margin-bottom: 4px !important;
+}
+#smo-cart-warning.smo-cart-warning ul {
+  margin: 6px 0 0 0 !important;
+  padding-left: 18px !important;
+  list-style: disc !important;
+}
+#smo-cart-warning.smo-cart-warning li { color: #e8d7ab !important; margin: 2px 0 !important; }
+#smo-cart-warning.smo-cart-warning .muted { margin-top: 6px !important; font-size: 12px !important; color: #c9b483 !important; }
+#smo-cart-warning.smo-cart-warning a { color: #7fd4ff !important; }
+
+/* 识别不出购物车商品时的"软提示"：不吓人，也不对任何具体游戏做断言 */
+#smo-cart-warning.smo-soft {
+  border-left-color: #6b8299 !important;
+  background: linear-gradient(90deg, rgba(107,130,153,.14) 0%, rgba(27,40,56,.9) 60%) !important;
+  color: #b9c9d6 !important;
+}
+#smo-cart-warning.smo-soft b { color: #d7e4ee !important; }

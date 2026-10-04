@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Steam 多账号拥有检查",
+  "short_name": "多账号拥有检查",
+  "version": "1.9.0",
+  "description": "把多个 Steam 账号的库合并成一张本地索引：浏览商店、愿望单、搜索结果和购物车时，直接标注哪个账号已经拥有这款游戏，避免重复购买。",
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.steampowered.com/*",
+    "https://store.steampowered.com/*",
+    "https://steamcommunity.com/*"
+  ],
+  "background": {
+    "service_worker": "src/bg/background.js"
+  },
+  "action": {
+    "default_title": "Steam 多账号拥有检查",
+    "default_popup": "src/ui/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "src/ui/options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://store.steampowered.com/*",
+        "https://steamcommunity.com/*"
+      ],
+      "js": [
+        "src/lib/core.js",
+        "src/content/content.js"
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

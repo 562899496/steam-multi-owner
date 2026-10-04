@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Steam 多账号拥有检查 — 设置</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <div class="head">
+    <h1>Steam 多账号拥有检查 · 设置</h1>
+    <span class="spacer"></span>
+    <span class="sub" id="version"></span>
+  </div>
+
+  <div class="options-body">
+    <div class="section">
+      <h2 style="margin-top:0">1. 添加账号</h2>
+      <div class="cols">
+        <div>
+          <label class="field">用当前浏览器的 Steam 登录态导入（推荐，不需要 API key）</label>
+          <div class="row">
+            <input type="text" id="sessionLabel" placeholder="给这个账号起个名字，例如：大号">
+            <button id="importSession" class="primary">导入</button>
+          </div>
+          <div class="hint">
+            先在浏览器里登录 store.steampowered.com，再点导入。<b>这个方式不需要 API key、也不要求档案公开</b>，
+            但一次只能导入"当前登录的那一个"账号 —— 多账号玩家请依次登录每个账号各导入一次。
+          </div>
+        </div>
+        <div>
+          <label class="field">用 SteamID / 自定义 ID / 个人资料链接添加（走 Web API 或公开档案）</label>
+          <div class="row"><input type="text" id="newLabel" placeholder="备注名，例如：小号"></div>
+          <div class="row"><input type="text" id="newKey" placeholder="76561198… 或 gabel 或 steamcommunity.com/id/gabel"></div>
+          <div class="row"><input type="text" id="newApiKey" placeholder="该账号专用 API key（可留空，用下面的共享 key）"></div>
+          <div class="row">
+            <button id="addAccount" class="primary">添加并同步</button>
+            <button id="addAccountOnly">仅添加</button>
+          </div>
+          <div class="hint">档案的「游戏详情」必须是公开的，否则 API / 公开档案都读不到库。私密档案请用上面的登录态导入。</div>
+        </div>
+      </div>
+      <div class="status" id="addStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">2. 我的账号</h2>
+      <ul class="list" id="accounts"></ul>
+      <div class="row" style="margin-top:10px">
+        <button id="syncAll" class="primary">同步全部</button>
+        <button id="rebuild">重建索引</button>
+      </div>
+      <div class="status" id="accountStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">3. 共享 API key</h2>
+      <div class="row">
+        <input type="password" id="apiKey" placeholder="Steam Web API key（32 位十六进制）">
+        <button id="saveApiKey">保存</button>
+      </div>
+      <div class="hint">
+        在 <a href="https://steamcommunity.com/dev/apikey" target="_blank" rel="noreferrer">steamcommunity.com/dev/apikey</a>
+        免费申请。一个 key 可以用来查询任意「游戏详情公开」的账号，所以多个账号通常只需要一个 key。
+        key 只保存在本机（chrome.storage.local），只会发往 api.steampowered.com。
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">4. 显示与刷新</h2>
+      <div class="switch"><input type="checkbox" id="showInlineBadges"><label for="showInlineBadges">在列表页（愿望单 / 搜索 / 首页 / 购物车）显示角标</label></div>
+      <div class="switch"><input type="checkbox" id="showPanel"><label for="showPanel">在游戏页显示详情面板</label></div>
+      <div class="switch"><input type="checkbox" id="hideWhenNoneOwned"><label for="hideWhenNoneOwned">只显示"我的账号已拥有"的角标，没有的完全不显示</label></div>
+      <div class="row" style="margin-top:10px">
+        <label class="field" style="margin:0;flex:0 0 auto">自动刷新</label>
+        <select id="autoRefreshHours">
+          <option value="0">关闭</option>
+          <option value="6">每 6 小时</option>
+          <option value="12">每 12 小时</option>
+          <option value="24">每天</option>
+          <option value="72">每 3 天</option>
+        </select>
+        <span class="hint" style="margin:0">（只有配置了 API key 的账号能后台刷新；登录态导入的账号需要你手动点刷新）</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">5. 诊断（怀疑抓错数据时用）</h2>
+      <div class="row">
+        <input type="text" id="diagAppid" placeholder="目标 AppID（可选，例如 264710 = Subnautica）">
+        <button id="diagnose">开始诊断</button>
+        <button id="copyDiag" class="ghost">复制结果</button>
+      </div>
+      <div class="hint">
+        依次读取：① 商店页面里的会话身份（SteamID / token）② dynamicstore 许可证条目
+        ③ 用会话 token 调 GetOwnedGames（真正的游戏列表）④ 许可证页面 ⑤ 本地记录与索引，
+        并逐项标出条数、数据里的 steamid、以及**是否包含目标 AppID**。
+        如果抓到的数据不属于当前账号，这几项会互相矛盾，一眼就能看出来。
+      </div>
+      <pre class="export" id="diagBox" style="display:none"></pre>
+      <div class="status" id="diagStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">6. 备份与迁移</h2>
+      <div class="row">
+        <button id="exportData">导出 JSON（不含 key）</button>
+        <button id="downloadData">下载为文件（给 DSH 用）</button>
+        <button id="importData">导入 JSON</button>
+        <button id="copyExport" class="ghost">复制到剪贴板</button>
+      </div>
+      <div class="hint">
+        导出文件可以直接导入到手机版页面（mobile/index.html），这样手机上也能离线查"哪个账号有这款游戏"。
+        「下载为文件」会存成 <code>steam-multi-owner.json</code>，便于喂给 DSH 插件：
+        <code>steam_owner_data action=import file=&lt;文件路径&gt;</code>。
+      </div>
+      <pre class="export" id="exportBox" style="display:none"></pre>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+      <div class="status" id="dataStatus"></div>
+    </div>
+
+    <div class="section">
+      <h2 style="margin-top:0">隐私说明</h2>
+      <div class="hint">
+        · 所有数据（账号列表、库快照、索引）都只保存在你本机的 chrome.storage.local，不上传任何服务器。<br>
+        · 扩展只访问 3 个域名：api.steampowered.com、store.steampowered.com、steamcommunity.com。<br>
+        · 没有任何统计、埋点、第三方请求；没有远程代码。<br>
+        · API key 不随导出文件外泄。
+      </div>
+    </div>
+  </div>
+
+  <script src="../lib/core.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

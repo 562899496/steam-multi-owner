@@ -1,0 +1,15 @@
+# @local/steam-owner 的 bundle patch 层。
+#
+# 三个坑都踩过，写在这里免得再犯：
+#   1. 必须是 `insert:` 形式 —— 顶级裸行表示"按 id 覆盖已有条目"，
+#      新条目只有写在 insert 下面才会被插进 loader 树（写错了会静默不生效）。
+#   2. 作用域名（@local/...）在 YAML 里是保留指示符，必须加引号，否则解析失败。
+#   3. loader 对同一个 row id / 包名只导入一次 JS 模块；改了代码后换 id 与包名
+#      （或重启 DSH）才会加载新的一代，否则旧实现会继续应答。
+- insert:
+    - id: steam-ownership
+      name: '@local/steam-ownership'
+      config:
+        apiKey: ""
+        dataFile: ""
+        defaultCurrentAccount: ""

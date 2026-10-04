@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2838">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<title>Steam 多账号拥有检查 · 手机离线查询</title>
+<!--
+  这是「源模板」，不要直接用浏览器打开本文件：
+  请先运行 `node tools/build-mobile.mjs`，它会把自己内联到 mobile/index.html。
+  本文件不含任何外部资源（无 CDN、无字体、无图片），可以从 file:// 离线打开。
+-->
+<style>
+:root{
+  --smo-bg:#1b2838;
+  --smo-bg2:#16202d;
+  --smo-panel:#22303c;
+  --smo-line:#2a475e;
+  --smo-text:#c7d5e0;
+  --smo-dim:#7b93a6;
+  --smo-green:#a4d007;
+  --smo-blue:#66c0f4;
+  --smo-warn:#e6a919;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+body{
+  min-height:100vh;
+  background:linear-gradient(180deg,#1b2838 0%,#16202d 55%,#101822 100%);
+  background-attachment:fixed;
+  color:var(--smo-text);
+  font:16px/1.6 "Motiva Sans","Microsoft YaHei","PingFang SC","Hiragino Sans GB",Arial,sans-serif;
+  padding-bottom:24px;
+}
+a{ color:var(--smo-blue); }
+
+.head{
+  position:sticky; top:0; z-index:5;
+  padding:12px 14px;
+  background:linear-gradient(180deg,#2a475e 0%,#1b2838 100%);
+  border-bottom:1px solid var(--smo-line);
+}
+.head h1{ font-size:17px; margin:0; letter-spacing:.3px; color:#fff; }
+.head .sub{ font-size:12px; color:var(--smo-dim); margin-top:2px; }
+
+main{ max-width:760px; margin:0 auto; padding:12px; }
+footer{ max-width:760px; margin:0 auto; padding:4px 14px 20px; color:var(--smo-dim); font-size:12px; }
+footer p{ margin:6px 0; }
+
+.card{
+  background:var(--smo-panel);
+  border:1px solid var(--smo-line);
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.card.status{ background:rgba(0,0,0,.24); }
+h2{
+  font-size:12px; text-transform:uppercase; letter-spacing:.9px;
+  color:var(--smo-dim); margin:0 0 8px; font-weight:600;
+}
+.summary{ font-size:15px; line-height:1.5; }
+.summary b{ color:#fff; font-weight:700; }
+.hint{ font-size:12.5px; color:var(--smo-dim); margin:6px 0; }
+.hint.warn{ color:#ffd98a; }
+.hint b{ color:var(--smo-text); }
+
+.row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.row + .row{ margin-top:8px; }
+.row > input[type="text"]{ flex:1 1 140px; min-width:0; }
+.row > button, .row > .file-btn{ flex:0 0 auto; }
+
+textarea,input[type="text"],select{
+  width:100%;
+  background:#101822; color:var(--smo-text);
+  border:1px solid var(--smo-line); border-radius:8px;
+  padding:10px; font:inherit; font-size:15px;
+}
+textarea{
+  min-height:92px; resize:vertical; font-size:12px; line-height:1.45;
+  font-family:ui-monospace,Menlo,Consolas,"Courier New",monospace;
+}
+input:focus,select:focus,textarea:focus{ outline:2px solid var(--smo-blue); outline-offset:0; }
+label.field{ display:block; font-size:12.5px; color:var(--smo-dim); margin:0 0 6px; }
+
+button,.file-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:46px; padding:10px 18px; border-radius:8px;
+  font:inherit; font-size:15px; font-weight:600;
+  color:#dbe8f2; cursor:pointer;
+  border:1px solid var(--smo-line);
+  background:linear-gradient(to bottom,#2a475e 0%,#1b2838 100%);
+}
+button:active:not(:disabled),.file-btn:active{ background:linear-gradient(to bottom,#3d6c8f 0%,#2a475e 100%); color:#fff; }
+button:disabled{ opacity:.55; }
+button.primary{ background:linear-gradient(to bottom,#75b022 0%,#588a1b 100%); border-color:#4b7316; color:#fff; }
+button.primary:active:not(:disabled){ background:linear-gradient(to bottom,#8ed629 0%,#6aa621 100%); }
+button.danger{ color:#ff9a9a; border-color:#5a2b2b; }
+button.small{ min-height:38px; padding:6px 12px; font-size:13px; font-weight:500; }
+
+.vh{ position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; clip:rect(0 0 0 0); }
+
+.msg{ font-size:13px; margin-top:8px; min-height:0; }
+.msg.err{ color:#ffb3b3; }
+.msg.ok{ color:#cdee9a; }
+.msg.warn{ color:#ffd98a; }
+
+.candidates{ margin-top:10px; }
+.candidates .cand{
+  display:block; width:100%; text-align:left; margin-top:6px;
+  min-height:46px; font-weight:500;
+}
+.candidates .cand .cid{ color:var(--smo-dim); font-size:12px; margin-left:6px; font-weight:400; }
+
+.res{
+  border:1px solid var(--smo-line); border-left-width:4px; border-radius:10px;
+  padding:12px; margin-top:12px; background:rgba(0,0,0,.24);
+}
+.res.none{ border-left-color:var(--smo-dim); }
+.res.current,.res.both{ border-left-color:var(--smo-green); }
+.res.other{ border-left-color:var(--smo-warn); }
+.res.unknown{ border-left-color:var(--smo-blue); }
+.res .verdict{ font-size:16px; font-weight:700; line-height:1.45; }
+.res.other .verdict{ color:#ffd98a; }
+.res.current .verdict,.res.both .verdict{ color:#cdee9a; }
+.res.none .verdict{ color:var(--smo-dim); }
+.res.unknown .verdict{ color:var(--smo-blue); }
+.res .game-name{ font-size:13px; color:var(--smo-dim); margin-top:4px; word-break:break-word; }
+.res .explain{ font-size:13px; margin-top:8px; }
+.res .warnline{ font-size:12.5px; color:#ffd98a; margin-top:8px; }
+
+.rows{ list-style:none; margin:10px 0 0; padding:0; }
+.rows li{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 0; border-top:1px solid rgba(42,71,94,.6);
+}
+.rows .grow{ flex:1 1 auto; min-width:0; }
+.rows .name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+.rows .sub{ font-size:11.5px; color:var(--smo-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rows .store-link{
+  flex:0 0 auto; display:inline-flex; align-items:center;
+  min-height:38px; padding:0 10px; font-size:13px; border-radius:8px;
+  border:1px solid var(--smo-line); background:rgba(102,192,244,.08); text-decoration:none;
+}
+
+.tag{ font-size:11.5px; padding:2px 7px; border-radius:4px; background:var(--smo-panel); color:var(--smo-dim); white-space:nowrap; flex:0 0 auto; }
+.tag.ok{ background:#2f4a16; color:#cdee9a; }
+.tag.warn{ background:#4a3a12; color:#ffd98a; }
+.tag.no{ background:#1d2b36; color:var(--smo-dim); }
+.tag.me{ background:#243f52; color:var(--smo-blue); }
+
+.list{ list-style:none; margin:10px 0 0; padding:0; }
+.list li{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 0; border-top:1px solid rgba(42,71,94,.6);
+}
+.list li:first-child{ border-top:0; }
+.list .grow{ flex:1 1 auto; min-width:0; }
+.list .name{ font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.list .sub{ font-size:11.5px; color:var(--smo-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<header class="head">
+  <h1>Steam 多账号拥有检查</h1>
+  <div class="sub">手机离线查询 · 数据只保存在本机</div>
+</header>
+
+<main>
+  <section class="card status">
+    <div class="summary" id="summary">正在读取本机数据…</div>
+    <div class="hint" id="sync-note"></div>
+    <div class="hint warn" id="storage-warn" hidden>这个浏览器不允许本页保存数据（可能是隐私模式）。本次导入的数据只保留在当前页面，刷新后会丢失。</div>
+  </section>
+
+  <section class="card">
+    <h2>1 · 导入数据</h2>
+    <p class="hint">
+      在电脑上打开扩展，点「导出 JSON」，把导出的内容粘贴到下面（或选文件）。
+      <b>数据只写进这台设备的浏览器，不会上传到任何服务器</b>，断网也能查询。
+    </p>
+    <textarea id="json-input" rows="4" spellcheck="false" autocomplete="off"
+      placeholder='{"exportedAt":"...","accounts":[{"id":"main","label":"大号"}],"libraries":{"main":{"appids":[440],"names":{"440":"Team Fortress 2"}}}}'></textarea>
+    <div class="row">
+      <button id="import-btn" class="primary" type="button">导入</button>
+      <label class="file-btn" for="file-input">选择 JSON 文件</label>
+      <input id="file-input" class="vh" type="file" accept=".json,application/json,text/plain">
+    </div>
+    <div class="msg" id="import-msg"></div>
+  </section>
+
+  <section class="card">
+    <h2>2 · 查询游戏</h2>
+    <div class="row">
+      <input id="query-input" type="text" inputmode="search" enterkeyhint="search"
+        autocomplete="off" spellcheck="false" placeholder="AppID / 商店链接 / 游戏名">
+      <button id="query-btn" class="primary" type="button">查询</button>
+    </div>
+    <div class="msg" id="query-msg"></div>
+    <div class="candidates" id="candidates"></div>
+    <div id="result"></div>
+  </section>
+
+  <section class="card">
+    <h2>3 · 账号</h2>
+    <label class="field" for="current-select">当前登录的账号（决定「是不是已经买过」的判断口径）</label>
+    <select id="current-select"></select>
+    <ul class="list" id="accounts-list"></ul>
+    <div class="row">
+      <button id="clear-btn" class="danger" type="button">清空全部本机数据</button>
+    </div>
+    <div class="msg" id="account-msg"></div>
+  </section>
+</main>
+
+<footer>
+  <p>· 本页面是单个 HTML 文件，可以从 file:// 直接打开，完全离线可用。</p>
+  <p>· 所有数据只存在本机浏览器的 localStorage（键名 smo.mobile.state），不会上传，也不联网。</p>
+  <p>· 合并游戏库 / 重新导出仍然需要电脑上的 Chrome 扩展：手机浏览器不支持扩展。</p>
+</footer>
+
+<script>
+/* __SMO_CORE__ */
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ *
+   * 0. 内联进来的纯逻辑层
+   * ------------------------------------------------------------------ */
+  var ROOT = typeof globalThis !== 'undefined' ? globalThis : this;
+  var Core = ROOT.SteamOwnerCore;
+  if (!Core || typeof Core.decideBadge !== 'function') {
+    throw new Error('core.js 没有被内联进来，请用 node tools/build-mobile.mjs 重新构建');
+  }
+
+  var STORAGE_KEY = 'smo.mobile.state';
+
+  /* ------------------------------------------------------------------ *
+   * 1. 最小 DOM 助手（全部用 createElement/textContent，绝不拼 innerHTML：
+   *    游戏名来自外部 JSON，用 innerHTML 会有注入风险）
+   * ------------------------------------------------------------------ */
+  function $(id) { return document.getElementById(id); }
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = String(text);
+    return node;
+  }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+  function setMsg(node, text, kind) {
+    node.className = 'msg' + (kind ? ' ' + kind : '');
+    node.textContent = text || '';
+  }
+
+  var E = {
+    summary: $('summary'),
+    syncNote: $('sync-note'),
+    storageWarn: $('storage-warn'),
+    jsonInput: $('json-input'),
+    fileInput: $('file-input'),
+    importBtn: $('import-btn'),
+    importMsg: $('import-msg'),
+    queryInput: $('query-input'),
+    queryBtn: $('query-btn'),
+    queryMsg: $('query-msg'),
+    candidates: $('candidates'),
+    result: $('result'),
+    currentSelect: $('current-select'),
+    accountsList: $('accounts-list'),
+    clearBtn: $('clear-btn'),
+    accountMsg: $('account-msg')
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 2. 本机存储（localStorage 不可用时降级为内存，并给出提示）
+   * ------------------------------------------------------------------ */
+  var memoryFallback = null;
+  var storageOk = true;
+  try {
+    ROOT.localStorage.setItem('smo.probe', '1');
+    ROOT.localStorage.removeItem('smo.probe');
+  } catch (err) {
+    storageOk = false;
+  }
+
+  function readRaw() {
+    if (!storageOk) return memoryFallback;
+    try { return ROOT.localStorage.getItem(STORAGE_KEY); } catch (err) { storageOk = false; return memoryFallback; }
+  }
+  function writeRaw(text) {
+    memoryFallback = text;
+    if (!storageOk) return false;
+    try { ROOT.localStorage.setItem(STORAGE_KEY, text); return true; }
+    catch (err) { storageOk = false; return false; }
+  }
+  function clearRaw() {
+    memoryFallback = null;
+    try { ROOT.localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 3. 状态
+   * ------------------------------------------------------------------ */
+  function emptyState() {
+    return {
+      exportedAt: null,
+      version: null,
+      accounts: [],
+      libraries: {},
+      settings: { currentAccountId: null }
+    };
+  }
+
+  var S = emptyState();
+  var rev = 0;          // 状态版本号，用来做索引/名字表的缓存失效
+  var idx = null;
+  var idxRev = -1;
+  var namesCache = null;
+  var namesRev = -1;
+  var lastAppid = null;
+
+  function findAccount(id) {
+    for (var i = 0; i < S.accounts.length; i++) if (S.accounts[i].id === id) return S.accounts[i];
+    return null;
+  }
+  function labelOf(id) {
+    var acc = findAccount(id);
+    return acc ? Core.accountLabel(acc) : (id || '(未设置)');
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4. 导入校验（人话错误）
+   * ------------------------------------------------------------------ */
+  function normalize(raw) {
+    if (raw == null) return { ok: false, error: '内容为空。' };
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); }
+      catch (err) { return { ok: false, error: '不是合法的 JSON：' + (err && err.message ? err.message : err) }; }
+    }
+    if (typeof raw !== 'object' || Array.isArray(raw)) {
+      return { ok: false, error: '顶层必须是一个 JSON 对象，形如 {"accounts":[...],"libraries":{...}}。' };
+    }
+    if (!Array.isArray(raw.accounts)) {
+      return { ok: false, error: '缺少 accounts 数组：这看起来不是本工具导出的数据，请在扩展的设置页重新「导出 JSON」。' };
+    }
+
+    var accounts = [];
+    var taken = Object.create(null);
+    for (var i = 0; i < raw.accounts.length; i++) {
+      var a = raw.accounts[i];
+      if (!a || typeof a !== 'object') continue;
+      var id = a.id != null && String(a.id) ? String(a.id) : Core.makeAccountId(a.label || a.vanity || a.steamId64 || 'account', accounts);
+      if (taken[id]) continue;
+      taken[id] = 1;
+      var acc = { id: id };
+      if (a.label != null) acc.label = String(a.label);
+      if (a.steamId64 != null) acc.steamId64 = String(a.steamId64);
+      if (a.vanity != null) acc.vanity = String(a.vanity);
+      accounts.push(acc);
+    }
+    if (!accounts.length) return { ok: false, error: 'accounts 里没有任何有效账号（每条至少要能取出一个 id 或 label）。' };
+
+    var srcLib = (raw.libraries && typeof raw.libraries === 'object' && !Array.isArray(raw.libraries)) ? raw.libraries : {};
+    var libraries = {};
+    for (var j = 0; j < accounts.length; j++) {
+      var lib = srcLib[accounts[j].id];
+      // 没有快照的账号 = 未同步，这里坚决不造一个空库，否则会被误判成「没有这款游戏」
+      if (!lib || typeof lib !== 'object') continue;
+      var appids = [];
+      var uniq = Object.create(null);
+      var srcIds = Array.isArray(lib.appids) ? lib.appids : [];
+      for (var k = 0; k < srcIds.length; k++) {
+        var n = Number(srcIds[k]);
+        if (!(n > 0) || uniq[n]) continue;
+        uniq[n] = 1;
+        appids.push(n);
+      }
+      var names = {};
+      if (lib.names && typeof lib.names === 'object') {
+        var keys = Object.keys(lib.names);
+        for (var m = 0; m < keys.length; m++) {
+          var nid = Number(keys[m]);
+          if (nid > 0 && lib.names[keys[m]]) names[nid] = String(lib.names[keys[m]]);
+        }
+      }
+      // gameAppids / kind 决定"这个账号有多少款游戏"（区别于含 DLC 的条目数），
+      // 必须在导入时保留，否则界面上只能显示"游戏数待识别"。
+      var gameAppids = null;
+      if (Array.isArray(lib.gameAppids)) {
+        gameAppids = [];
+        var gseen = Object.create(null);
+        for (var gi = 0; gi < lib.gameAppids.length; gi++) {
+          var gid = Number(lib.gameAppids[gi]);
+          if (!(gid > 0) || gseen[gid]) continue;
+          gseen[gid] = 1;
+          gameAppids.push(gid);
+        }
+      }
+      libraries[accounts[j].id] = {
+        appids: appids,
+        gameAppids: gameAppids,
+        kind: lib.kind === 'games' || lib.kind === 'mixed' || lib.kind === 'apps' ? lib.kind : 'apps',
+        names: names,
+        updatedAt: lib.updatedAt ? String(lib.updatedAt) : null,
+        method: lib.method ? String(lib.method) : null
+      };
+    }
+
+    var srcSet = (raw.settings && typeof raw.settings === 'object' && !Array.isArray(raw.settings)) ? raw.settings : {};
+    var current = srcSet.currentAccountId ? String(srcSet.currentAccountId) : null;
+    if (!current || !findAccountIn(accounts, current)) current = accounts[0].id;
+
+    return {
+      ok: true,
+      state: {
+        exportedAt: raw.exportedAt ? String(raw.exportedAt) : null,
+        version: raw.version ? String(raw.version) : null,
+        accounts: accounts,
+        libraries: libraries,
+        settings: { currentAccountId: current }
+      }
+    };
+  }
+  function findAccountIn(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5. 索引与名字表（复用 core）
+   * ------------------------------------------------------------------ */
+  function librariesOf(state) {
+    var out = [];
+    for (var i = 0; i < state.accounts.length; i++) {
+      var acc = state.accounts[i];
+      var lib = state.libraries[acc.id];
+      if (!lib || typeof lib !== 'object') continue; // 未同步的账号绝不能进索引
+      out.push({
+        accountId: acc.id,
+        label: Core.accountLabel(acc),
+        appids: Array.isArray(lib.appids) ? lib.appids : [],
+        // 游戏数与条目数要分开：只有确认了"哪些是游戏本体"的账号才能计入游戏数
+        gameAppids: Array.isArray(lib.gameAppids) ? lib.gameAppids : null,
+        kind: lib.kind || 'apps',
+        names: lib.names || {},
+        updatedAt: lib.updatedAt || null
+      });
+    }
+    return out;
+  }
+  function getIndex() {
+    if (idxRev !== rev) {
+      idx = Core.buildIndex(librariesOf(S), S.exportedAt || undefined);
+      idxRev = rev;
+    }
+    return idx;
+  }
+  function getNames() {
+    if (namesRev === rev) return namesCache;
+    var map = Object.create(null);
+    var ids = Object.keys(S.libraries);
+    for (var i = 0; i < ids.length; i++) {
+      var lib = S.libraries[ids[i]];
+      if (!lib || !lib.names) continue;
+      var keys = Object.keys(lib.names);
+      for (var j = 0; j < keys.length; j++) {
+        var n = Number(keys[j]);
+        if (n > 0 && !map[n]) map[n] = String(lib.names[keys[j]]);
+      }
+    }
+    namesCache = map;
+    namesRev = rev;
+    return map;
+  }
+  function summarize() { return Core.summarize(getIndex(), S.accounts); }
+
+  /* ------------------------------------------------------------------ *
+   * 6. 渲染
+   * ------------------------------------------------------------------ */
+  function fmtTime(iso) {
+    if (!iso) return '未知';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function fmtAccountId(acc) {
+    if (acc.steamId64) return acc.steamId64;
+    if (acc.vanity) return acc.vanity;
+    return 'id: ' + acc.id;
+  }
+
+  /** 账号那一行的数量文案：有游戏数就以游戏数为主，只有条目就照实说"待识别"。 */
+  function countTextOf(accountId, per) {
+    var lib = S.libraries && S.libraries[accountId];
+    if (lib) return Core.describeCount(lib);
+    if (!per) return '未同步';
+    if (per.gameCount != null) {
+      return per.gameCount + ' 款游戏' + (per.appCount > per.gameCount ? '（另 ' + (per.appCount - per.gameCount) + ' 项 DLC/工具）' : '');
+    }
+    return per.appCount + ' 项（含 DLC/工具，游戏数待识别）';
+  }
+
+  function renderSummary() {    var sum = summarize();
+    var parts = [];
+    parts.push(sum.accountCount + ' 个账号');
+    // 索引里可能混了 DLC/工具等条目，所以主数字用"游戏数"，AppID 覆盖量单独说明
+    if (sum.gameAppCount) {
+      parts.push(sum.gameAppCount + ' 款游戏' + (sum.uniqueAppCount > sum.gameAppCount ? '（另 ' + (sum.uniqueAppCount - sum.gameAppCount) + ' 项 DLC/工具）' : ''));
+    } else {
+      parts.push('索引覆盖 ' + sum.uniqueAppCount + ' 个 AppID');
+    }
+    parts.push('数据时间 ' + fmtTime(S.exportedAt));
+    E.summary.textContent = parts.join(' / ');
+
+    var unsynced = sum.accountCount - sum.syncedCount;
+    if (!sum.accountCount) {
+      E.syncNote.textContent = '还没有数据：先在下面「导入数据」里粘贴扩展导出的 JSON（或用「选择 JSON 文件」）。';
+    } else if (unsynced > 0) {
+      E.syncNote.textContent = '其中 ' + sum.syncedCount + ' 个账号已同步库；另有 ' + unsynced + ' 个账号还没同步，它们无法判断是否拥有这款游戏。';
+    } else {
+      E.syncNote.textContent = '全部 ' + sum.syncedCount + ' 个账号都已同步库，结论完整。';
+    }
+    E.storageWarn.hidden = storageOk;
+  }
+
+  function renderAccounts() {
+    clear(E.currentSelect);
+    if (!S.accounts.length) {
+      var none = el('option', null, '（还没有账号）');
+      none.value = '';
+      E.currentSelect.appendChild(none);
+    }
+    for (var i = 0; i < S.accounts.length; i++) {
+      var acc = S.accounts[i];
+      var opt = el('option', null, Core.accountLabel(acc));
+      opt.value = acc.id;
+      E.currentSelect.appendChild(opt);
+    }
+    if (S.settings.currentAccountId) E.currentSelect.value = S.settings.currentAccountId;
+    E.currentSelect.disabled = !S.accounts.length;
+
+    clear(E.accountsList);
+    var index = getIndex();
+    for (var j = 0; j < S.accounts.length; j++) {
+      var a = S.accounts[j];
+      var per = index.perAccount[a.id];
+      var li = el('li');
+      var grow = el('div', 'grow');
+      grow.appendChild(el('div', 'name', Core.accountLabel(a)));
+      grow.appendChild(el('div', 'sub', fmtAccountId(a) + ' · ' + (per ? countTextOf(a.id, per) : '未同步（无法判断拥有情况）')));
+      li.appendChild(grow);
+      if (a.id === S.settings.currentAccountId) li.appendChild(el('span', 'tag me', '当前登录'));
+      var del = el('button', 'small danger', '删除');
+      del.type = 'button';
+      del.setAttribute('data-act', 'delete-account');
+      del.setAttribute('data-account-id', a.id);
+      li.appendChild(del);
+      E.accountsList.appendChild(li);
+    }
+  }
+
+  function toneClass(tone) {
+    if (tone === 'owned-other') return 'other';
+    if (tone === 'owned-current') return 'current';
+    if (tone === 'owned-both') return 'both';
+    if (tone === 'unknown') return 'unknown';
+    return 'none';
+  }
+  function headlineOf(badge, sum) {
+    if (badge.tone === 'owned-other') return badge.short + ' —— 不用重复购买';
+    if (badge.short) return badge.short;
+    if (badge.tone === 'none') return '你的 ' + sum.syncedCount + ' 个账号都没有这款游戏';
+    return '无法判断';
+  }
+  function accountStateOf(account, appid, index) {
+    var owners = (index.owners && index.owners[appid]) || [];
+    for (var i = 0; i < owners.length; i++) if (owners[i] === account.id) return { text: '✓ 已拥有', cls: 'ok' };
+    if (!S.libraries[account.id]) return { text: '未同步', cls: 'warn' };
+    return { text: '未拥有', cls: 'no' };
+  }
+
+  function renderResult() {
+    clear(E.result);
+    if (lastAppid == null) return;
+    var appid = lastAppid;
+    var index = getIndex();
+    var sum = summarize();
+    var currentId = S.settings.currentAccountId;
+    var detail = Core.ownedByOthers(index, appid, S.accounts, currentId);
+    var badge = Core.decideBadge(detail, {
+      accountCount: S.accounts.length,
+      syncedCount: sum.syncedCount,
+      currentAccountId: currentId,
+      currentLabel: labelOf(currentId)
+    });
+
+    var box = el('div', 'res ' + toneClass(badge.tone));
+    box.setAttribute('data-tone', badge.tone);
+    box.appendChild(el('div', 'verdict', headlineOf(badge, sum)));
+
+    var name = getNames()[appid];
+    box.appendChild(el('div', 'game-name', (name ? name + ' · ' : '') + 'AppID ' + appid));
+
+    var explain = badge.long;
+    if (explain && explain !== box.firstChild.textContent) box.appendChild(el('div', 'explain', explain));
+    if (badge.incomplete && badge.tone !== 'unknown') {
+      var un = S.accounts.length - sum.syncedCount;
+      if (un > 0) box.appendChild(el('div', 'warnline', '注意：还有 ' + un + ' 个账号没同步库，本结论不完整（未同步 ≠ 没有这款游戏）。'));
+    }
+
+    var ul = el('ul', 'rows');
+    for (var i = 0; i < S.accounts.length; i++) {
+      var acc = S.accounts[i];
+      var li = el('li');
+      var grow = el('div', 'grow');
+      grow.appendChild(el('div', 'name', Core.accountLabel(acc) + (acc.id === currentId ? '（当前登录）' : '')));
+      grow.appendChild(el('div', 'sub', fmtAccountId(acc)));
+      li.appendChild(grow);
+      var st = accountStateOf(acc, appid, index);
+      li.appendChild(el('span', 'tag ' + st.cls, st.text));
+      var link = el('a', 'store-link', '打开商店页');
+      link.href = 'https://store.steampowered.com/app/' + appid + '/';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      li.appendChild(link);
+      ul.appendChild(li);
+    }
+    if (!S.accounts.length) ul.appendChild(el('li', 'sub', '还没有账号，先导入数据。'));
+    box.appendChild(ul);
+    E.result.appendChild(box);
+  }
+
+  function renderCandidates(query, list) {
+    clear(E.candidates);
+    if (!list.length) return;
+    E.candidates.appendChild(el('div', 'hint', '「' + query + '」匹配到 ' + list.length + ' 个游戏，点一个查询：'));
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      var btn = el('button', 'cand');
+      btn.type = 'button';
+      btn.setAttribute('data-act', 'pick-candidate');
+      btn.setAttribute('data-appid', String(item.appid));
+      btn.appendChild(document.createTextNode(item.name));
+      btn.appendChild(el('span', 'cid', '#' + item.appid));
+      E.candidates.appendChild(btn);
+    }
+  }
+
+  function renderAll() {
+    renderSummary();
+    renderAccounts();
+    renderResult();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7. 名字模糊匹配（用库里 names 做子串匹配）
+   * ------------------------------------------------------------------ */
+  function searchNames(query, limit) {
+    var q = String(query).trim().toLowerCase();
+    var names = getNames();
+    var starts = [];
+    var contains = [];
+    var keys = Object.keys(names);
+    for (var i = 0; i < keys.length; i++) {
+      var id = Number(keys[i]);
+      var name = names[keys[i]];
+      var lower = name.toLowerCase();
+      if (lower === q || lower.indexOf(q) === 0) starts.push({ appid: id, name: name });
+      else if (lower.indexOf(q) >= 0) contains.push({ appid: id, name: name });
+    }
+    function byName(a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : (a.name.toLowerCase() > b.name.toLowerCase() ? 1 : a.appid - b.appid); }
+    starts.sort(byName);
+    contains.sort(byName);
+    return starts.concat(contains).slice(0, limit || 20);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 8. 交互
+   * ------------------------------------------------------------------ */
+  function onQuery() {
+    var raw = E.queryInput.value.trim();
+    clear(E.candidates);
+    setMsg(E.queryMsg, '');
+    if (!raw) { setMsg(E.queryMsg, '请输入 AppID、Steam 商店链接或游戏名。', 'err'); return; }
+
+    var appid = Core.parseAppId(raw);
+    if (appid) { lastAppid = appid; renderResult(); return; }
+
+    var cands = searchNames(raw, 20);
+    if (!cands.length) {
+      lastAppid = null;
+      clear(E.result);
+      setMsg(E.queryMsg, '没有匹配「' + raw + '」的游戏名（只能匹配库里带名字的游戏，社区 XML 来源的库常常没有名字）。可以直接输入数字 AppID。', 'err');
+      return;
+    }
+    if (cands.length === 1) {
+      lastAppid = cands[0].appid;
+      renderCandidates(raw, cands);
+      renderResult();
+      setMsg(E.queryMsg, '游戏名匹配到 1 个：' + cands[0].name + '（#' + cands[0].appid + '）。', 'ok');
+      return;
+    }
+    lastAppid = null;
+    clear(E.result);
+    renderCandidates(raw, cands);
+    setMsg(E.queryMsg, '匹配到 ' + cands.length + ' 个，点选一个。', 'ok');
+  }
+
+  function onImport(text) {
+    var src = (text == null) ? E.jsonInput.value : text;
+    if (!src || !String(src).trim()) {
+      setMsg(E.importMsg, '请先粘贴扩展导出的 JSON，或用「选择 JSON 文件」。', 'err');
+      return;
+    }
+    var parsed;
+    try { parsed = JSON.parse(src); }
+    catch (err) { setMsg(E.importMsg, 'JSON 解析失败：' + (err && err.message ? err.message : err), 'err'); return; }
+
+    var res = normalize(parsed);
+    if (!res.ok) { setMsg(E.importMsg, '导入失败：' + res.error, 'err'); return; }
+
+    S = res.state;
+    rev++;
+    idxRev = -1;
+    namesRev = -1;
+    lastAppid = null;
+    clear(E.result);
+    clear(E.candidates);
+    setMsg(E.queryMsg, '');
+    var saved = writeRaw(JSON.stringify(S));
+    renderAll();
+    var sum = summarize();
+    E.jsonInput.value = '';
+    setMsg(
+      E.importMsg,
+      '导入成功：' + sum.accountCount + ' 个账号、' + (sum.gameAppCount ? sum.gameAppCount + ' 款游戏' : '索引 ' + sum.uniqueAppCount + ' 个 AppID') + '（' + sum.syncedCount + ' 个账号有库快照）。' +
+      (saved ? '数据已保存在本机浏览器，离线可用。' : '注意：本机存储不可用，本次数据只保留在当前页面。'),
+      saved ? 'ok' : 'warn'
+    );
+  }
+
+  function onDeleteAccount(id) {
+    var label = labelOf(id);
+    if (typeof ROOT.confirm === 'function' && !ROOT.confirm('删除账号「' + label + '」？它的游戏库快照也会一起删掉。')) return;
+    var next = [];
+    for (var i = 0; i < S.accounts.length; i++) if (S.accounts[i].id !== id) next.push(S.accounts[i]);
+    S.accounts = next;
+    delete S.libraries[id];
+    if (S.settings.currentAccountId === id) S.settings.currentAccountId = S.accounts.length ? S.accounts[0].id : null;
+    rev++;
+    writeRaw(JSON.stringify(S));
+    renderAll();
+    setMsg(E.accountMsg, '已删除账号「' + label + '」。', 'ok');
+  }
+
+  function onClearAll() {
+    if (typeof ROOT.confirm === 'function' && !ROOT.confirm('确定清空本机保存的全部账号和游戏库数据吗？此操作不可撤销。')) return;
+    S = emptyState();
+    rev++;
+    lastAppid = null;
+    clearRaw();
+    clear(E.result);
+    clear(E.candidates);
+    E.jsonInput.value = '';
+    setMsg(E.queryMsg, '');
+    renderAll();
+    setMsg(E.importMsg, '已清空本机的全部数据。', 'ok');
+    setMsg(E.accountMsg, '');
+  }
+
+  function bind() {
+    E.importBtn.addEventListener('click', function () { onImport(null); });
+
+    E.fileInput.addEventListener('change', function () {
+      var files = E.fileInput.files;
+      var file = files && files.length ? files[0] : null;
+      if (!file) return;
+      if (typeof FileReader === 'undefined') {
+        setMsg(E.importMsg, '这个浏览器不支持读取本地文件，请改用「粘贴 JSON」。', 'err');
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        try { onImport(String(reader.result == null ? '' : reader.result)); }
+        finally { E.fileInput.value = ''; }
+      };
+      reader.onerror = function () {
+        E.fileInput.value = '';
+        setMsg(E.importMsg, '读取文件失败，请改用「粘贴 JSON」。', 'err');
+      };
+      reader.readAsText(file);
+    });
+
+    E.queryBtn.addEventListener('click', onQuery);
+    E.queryInput.addEventListener('keydown', function (ev) {
+      if (ev && (ev.key === 'Enter' || ev.keyCode === 13)) onQuery();
+    });
+
+    E.candidates.addEventListener('click', function (ev) {
+      var node = ev && ev.target;
+      while (node && node !== E.candidates) {
+        if (node.getAttribute && node.getAttribute('data-appid')) {
+          lastAppid = Number(node.getAttribute('data-appid'));
+          setMsg(E.queryMsg, '');
+          clear(E.candidates);
+          renderResult();
+          return;
+        }
+        node = node.parentNode;
+      }
+    });
+
+    E.currentSelect.addEventListener('change', function () {
+      S.settings.currentAccountId = E.currentSelect.value || null;
+      rev++;
+      writeRaw(JSON.stringify(S));
+      renderSummary();
+      renderAccounts();
+      renderResult();
+      setMsg(E.accountMsg, '当前登录账号已切换为「' + labelOf(S.settings.currentAccountId) + '」，下面的结论按这个账号判断。', 'ok');
+    });
+
+    E.accountsList.addEventListener('click', function (ev) {
+      var node = ev && ev.target;
+      while (node && node !== E.accountsList) {
+        if (node.getAttribute && node.getAttribute('data-act') === 'delete-account') {
+          onDeleteAccount(node.getAttribute('data-account-id'));
+          return;
+        }
+        node = node.parentNode;
+      }
+    });
+
+    E.clearBtn.addEventListener('click', onClearAll);
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 9. 启动
+   * ------------------------------------------------------------------ */
+  function boot() {
+    var text = readRaw();
+    if (text) {
+      var loaded = null;
+      try { loaded = normalize(JSON.parse(text)); } catch (err) { loaded = null; }
+      if (loaded && loaded.ok) {
+        S = loaded.state;
+      } else {
+        clearRaw();
+        setMsg(E.importMsg, '本机保存的数据已损坏或不兼容，已清空，请重新导入。', 'err');
+      }
+    }
+    bind();
+    renderAll();
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
