@@ -53,7 +53,7 @@
 ### 方式 B：从源码（给想改代码的人）
 
 ```powershell
-git clone https://github.com/<你的用户名>/steam-multi-owner.git
+git clone <本仓库地址>      # 或在 GitHub 页面点 Code → Download ZIP 再解压
 ```
 然后第 3~6 步同上，**直接选仓库根目录**即可 —— 根目录本身就是可加载的扩展目录
 （`test/`、`tools/`、`docs/` 这些对 Chrome 无影响，它只读 `manifest.json` 里引用的文件）。
