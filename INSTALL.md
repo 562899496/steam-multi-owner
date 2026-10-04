@@ -137,3 +137,7 @@ git clone <本仓库地址>      # 或在 GitHub 页面点 Code → Download ZIP
 本项目与 Valve Corporation / Steam 没有任何关联，也未获得其授权或认可。
 "Steam" 是其各自所有者的商标。本项目只读取你自己账号的数据，仅供个人使用。
 请自行遵守 Steam 的用户协议。
+
+## 许可
+
+本项目以 [MIT 许可](LICENSE) 发布：你可以自由使用、修改、再发布（保留版权声明即可）。

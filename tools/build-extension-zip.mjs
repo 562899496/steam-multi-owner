@@ -168,7 +168,7 @@ function walk(dir, base = dir) {
 const manifest = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
 // 只打包扩展真正需要的：manifest + src/ + icons/
 // （test/ tools/ docs/ mobile/ dsh/ 与开发配置都不进包，包越小越好装）
-const INCLUDES = ['manifest.json'];
+const INCLUDES = ['manifest.json', 'LICENSE'];
 for (const dir of ['src', 'icons']) INCLUDES.push(...walk(join(ROOT, dir), ROOT));
 
 const files = INCLUDES.map((name) => ({ name: name.split(sep).join('/'), data: readFileSync(join(ROOT, name)) }))

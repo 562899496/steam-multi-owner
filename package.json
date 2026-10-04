@@ -18,5 +18,6 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh-util-values": "0.2.0-rc.2"
-  }
+  },
+  "license": "MIT"
 }
